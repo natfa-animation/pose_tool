@@ -1237,69 +1237,52 @@ def unregister_properties():
     del bpy.types.Scene.sim_pt_selected_preset
 
 # Registration
+CLASSES = (
+    PTBonePoseData,
+    PTPoseItem,
+    PTPoseGroup,
+    PTPosePanel,
+    PTPreferences,
+    PT_OT_RecordPose,
+    PT_OT_DeletePoses,
+    PT_OT_ExportPoses,
+    PT_OT_ImportPoses,
+    PT_OT_MergePoses,
+    PT_OT_TogglePoseMode,
+    PT_OT_TogglePoseMirror,
+    PT_OT_ResetProgress,
+    PT_OT_UpdatePose,
+    PT_OT_SelectPoseBones,
+    PT_OT_ToggleApplyToAllBones,
+    PT_OT_ToggleRotation,
+    PT_OT_ToggleLocation,
+    PT_OT_ToggleScale,
+    PT_OT_DeletePose,
+    PT_OT_CreatePoseGroup,
+    PT_OT_DeletePoseGroup,
+    PT_OT_DuplicatePose,
+    PT_OT_LoadPreset,
+    PT_OT_SetProgress_Minus1,
+    PT_OT_SetProgress_Minus025,
+    PT_OT_SetProgress_Minus01,
+    PT_OT_SetProgress_Plus01,
+    PT_OT_SetProgress_Plus025,
+    PT_OT_SetProgress_Plus1,
+)
+
 def register():
-    bpy.utils.register_class(PTBonePoseData)
-    bpy.utils.register_class(PTPoseItem)
-    bpy.utils.register_class(PTPoseGroup)
-    bpy.types.Armature.sim_pt_poses = CollectionProperty(type=PTPoseItem)
-    bpy.types.Armature.sim_pt_pose_groups = CollectionProperty(type=PTPoseGroup)
-    register_properties()
-    bpy.utils.register_class(PTPosePanel)
-    bpy.utils.register_class(PTPreferences)
-    bpy.utils.register_class(PT_OT_RecordPose)
-    bpy.utils.register_class(PT_OT_DeletePoses)
-    bpy.utils.register_class(PT_OT_ExportPoses)
-    bpy.utils.register_class(PT_OT_ImportPoses)
-    bpy.utils.register_class(PT_OT_MergePoses)
-    bpy.utils.register_class(PT_OT_TogglePoseMode)
-    bpy.utils.register_class(PT_OT_TogglePoseMirror)
-    bpy.utils.register_class(PT_OT_ResetProgress)
-    bpy.utils.register_class(PT_OT_UpdatePose)
-    bpy.utils.register_class(PT_OT_SelectPoseBones)
-    bpy.utils.register_class(PT_OT_ToggleApplyToAllBones)
-    bpy.utils.register_class(PT_OT_ToggleRotation)
-    bpy.utils.register_class(PT_OT_ToggleLocation)
-    bpy.utils.register_class(PT_OT_ToggleScale)
-    bpy.utils.register_class(PT_OT_DeletePose)
-    bpy.utils.register_class(PT_OT_CreatePoseGroup)
-    bpy.utils.register_class(PT_OT_DeletePoseGroup)
-    bpy.utils.register_class(PT_OT_DuplicatePose)
-    bpy.utils.register_class(PT_OT_LoadPreset)
-    bpy.utils.register_class(PT_OT_SetProgress_Minus1)
-    bpy.utils.register_class(PT_OT_SetProgress_Minus025)
-    bpy.utils.register_class(PT_OT_SetProgress_Minus01)
-    bpy.utils.register_class(PT_OT_SetProgress_Plus01)
-    bpy.utils.register_class(PT_OT_SetProgress_Plus025)
-    bpy.utils.register_class(PT_OT_SetProgress_Plus1)
+    for cls in CLASSES:
+        bpy.utils.register_class(cls)
+        if cls is PTPoseGroup:
+            bpy.types.Armature.sim_pt_poses = CollectionProperty(type=PTPoseItem)
+            bpy.types.Armature.sim_pt_pose_groups = CollectionProperty(type=PTPoseGroup)
+            register_properties()
 
 def unregister():
     bpy.utils.unregister_class(PTPosePanel)
     bpy.utils.unregister_class(PTPreferences)
-    bpy.utils.unregister_class(PT_OT_RecordPose)
-    bpy.utils.unregister_class(PT_OT_DeletePoses)
-    bpy.utils.unregister_class(PT_OT_ExportPoses)
-    bpy.utils.unregister_class(PT_OT_ImportPoses)
-    bpy.utils.unregister_class(PT_OT_MergePoses)
-    bpy.utils.unregister_class(PT_OT_TogglePoseMode)
-    bpy.utils.unregister_class(PT_OT_TogglePoseMirror)
-    bpy.utils.unregister_class(PT_OT_ResetProgress)
-    bpy.utils.unregister_class(PT_OT_UpdatePose)
-    bpy.utils.unregister_class(PT_OT_SelectPoseBones)
-    bpy.utils.unregister_class(PT_OT_ToggleApplyToAllBones)
-    bpy.utils.unregister_class(PT_OT_ToggleRotation)
-    bpy.utils.unregister_class(PT_OT_ToggleLocation)
-    bpy.utils.unregister_class(PT_OT_ToggleScale)
-    bpy.utils.unregister_class(PT_OT_DeletePose)
-    bpy.utils.unregister_class(PT_OT_CreatePoseGroup)
-    bpy.utils.unregister_class(PT_OT_DeletePoseGroup)
-    bpy.utils.unregister_class(PT_OT_DuplicatePose)
-    bpy.utils.unregister_class(PT_OT_LoadPreset)
-    bpy.utils.unregister_class(PT_OT_SetProgress_Minus1)
-    bpy.utils.unregister_class(PT_OT_SetProgress_Minus025)
-    bpy.utils.unregister_class(PT_OT_SetProgress_Minus01)
-    bpy.utils.unregister_class(PT_OT_SetProgress_Plus01)
-    bpy.utils.unregister_class(PT_OT_SetProgress_Plus025)
-    bpy.utils.unregister_class(PT_OT_SetProgress_Plus1)
+    for cls in CLASSES[5:]:
+        bpy.utils.unregister_class(cls)
     unregister_properties()
     if hasattr(bpy.types.Armature, "sim_pt_poses"):
         for armature in bpy.data.armatures:
