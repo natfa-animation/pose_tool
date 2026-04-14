@@ -60,3 +60,4 @@ def unregister_properties():
     del bpy.types.Scene.sim_pt_presets_expanded
     del bpy.types.Scene.sim_pt_selected_armature
     del bpy.types.Scene.sim_pt_selected_preset
+
