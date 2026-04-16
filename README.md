@@ -1,3 +1,4 @@
+<img width="673" height="537" alt="Screenshot 2026-04-16 231652" src="https://github.com/user-attachments/assets/994c7ab4-31c9-4522-beb0-e72d1d74d259" />
 # SIM posetool (Blender Add-on)
 
 ## Description
