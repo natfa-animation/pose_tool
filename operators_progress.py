@@ -206,6 +206,11 @@ class PT_OT_ConfirmProgressPreview(bpy.types.Operator):
         pose = armature.data.sim_pt_poses[self.pose_index]
         core_apply.cancel_pose_preview(pose, context)
         pose.combined_progress = pose.preview_progress / 100.0
+        core_apply._PREVIEW_SUSPEND = True
+        try:
+            pose.preview_progress = 0.0
+        finally:
+            core_apply._PREVIEW_SUSPEND = False
         return {'FINISHED'}
 
 
@@ -227,7 +232,7 @@ class PT_OT_CancelProgressPreview(bpy.types.Operator):
         core_apply.cancel_pose_preview(pose, context)
         core_apply._PREVIEW_SUSPEND = True
         try:
-            pose.preview_progress = pose.combined_progress * 100.0
+            pose.preview_progress = 0.0
         finally:
             core_apply._PREVIEW_SUSPEND = False
         return {'FINISHED'}

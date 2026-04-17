@@ -88,7 +88,7 @@ class PTPoseItem(bpy.types.PropertyGroup):
             "preview_progress": FloatProperty(
                 name="Progress",
                 description="Preview pose progress before confirming",
-                default=10.0,
+                default=0.0,
                 min=0.0,
                 max=100.0,
                 update=lambda self, context: preview_pose_progress(self, context, self.preview_progress),
