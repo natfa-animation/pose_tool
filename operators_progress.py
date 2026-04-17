@@ -236,3 +236,72 @@ class PT_OT_CancelProgressPreview(bpy.types.Operator):
         finally:
             core_apply._PREVIEW_SUSPEND = False
         return {'FINISHED'}
+
+
+class PT_OT_AdjustPoseProgress(bpy.types.Operator):
+    bl_idname = "pt.adjust_pose_progress"
+    bl_label = "Adjust Pose"
+    bl_description = "Interactively adjust pose progress (LMB confirm, RMB/ESC cancel)"
+    bl_options = {'REGISTER', 'BLOCKING'}
+    if TYPE_CHECKING:
+        pose_index: int
+    else:
+        __annotations__ = {"pose_index": IntProperty()}
+
+    _start_mouse_x = 0
+    _value = 0.0
+    _area = None
+
+    def invoke(self, context, event):
+        armature = context.scene.sim_pt_selected_armature if context.scene.sim_pt_selected_armature else context.active_object
+        if not armature or armature.type != 'ARMATURE' or self.pose_index >= len(armature.data.sim_pt_poses):
+            self.report({'ERROR'}, "Invalid pose index or no armature selected")
+            return {'CANCELLED'}
+        self._start_mouse_x = event.mouse_x
+        self._value = 0.0
+        self._area = context.area
+        pose = armature.data.sim_pt_poses[self.pose_index]
+        core_apply.preview_pose_progress(pose, context, 0.0)
+        if self._area:
+            self._area.header_text_set("Adjust Pose: drag mouse to set 0–100, LMB confirm, RMB/ESC cancel")
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        if event.type in {'RIGHTMOUSE', 'ESC'}:
+            self._cancel(context)
+            return {'CANCELLED'}
+        if event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
+            self._confirm(context)
+            return {'FINISHED'}
+        if event.type == 'MOUSEMOVE':
+            armature = context.scene.sim_pt_selected_armature if context.scene.sim_pt_selected_armature else context.active_object
+            if not armature or armature.type != 'ARMATURE' or self.pose_index >= len(armature.data.sim_pt_poses):
+                self._cancel(context)
+                return {'CANCELLED'}
+            pose = armature.data.sim_pt_poses[self.pose_index]
+            dx = event.mouse_x - self._start_mouse_x
+            self._value = max(0.0, min(100.0, dx * 0.5))
+            core_apply.preview_pose_progress(pose, context, self._value)
+            if self._area:
+                self._area.header_text_set(f"Adjust Pose: {self._value:.1f}% (LMB confirm, RMB/ESC cancel)")
+            return {'RUNNING_MODAL'}
+        return {'RUNNING_MODAL'}
+
+    def _confirm(self, context):
+        armature = context.scene.sim_pt_selected_armature if context.scene.sim_pt_selected_armature else context.active_object
+        if not armature or armature.type != 'ARMATURE' or self.pose_index >= len(armature.data.sim_pt_poses):
+            return
+        pose = armature.data.sim_pt_poses[self.pose_index]
+        core_apply.cancel_pose_preview(pose, context)
+        pose.combined_progress = self._value / 100.0
+        if self._area:
+            self._area.header_text_set(None)
+
+    def _cancel(self, context):
+        armature = context.scene.sim_pt_selected_armature if context.scene.sim_pt_selected_armature else context.active_object
+        if armature and armature.type == 'ARMATURE' and self.pose_index < len(armature.data.sim_pt_poses):
+            pose = armature.data.sim_pt_poses[self.pose_index]
+            core_apply.cancel_pose_preview(pose, context)
+        if self._area:
+            self._area.header_text_set(None)

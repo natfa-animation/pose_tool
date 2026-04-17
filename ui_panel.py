@@ -96,8 +96,5 @@ class PTPosePanel(bpy.types.Panel):
         row.operator("pt.toggle_pose_mirror", text="", icon='OUTLINER_OB_MESH', depress=pose.is_mirrored).pose_index = pose_index
         row.operator("pt.delete_pose", text="", icon='TRASH').pose_index = pose_index
         row.operator("pt.duplicate_pose", text="", icon='DUPLICATE').pose_index = pose_index
-        row = box.row()
-        row.prop(pose, "preview_progress", text="Progress", slider=True)
         row = box.row(align=True)
-        row.operator("pt.confirm_progress_preview", text="Confirm", icon='CHECKMARK').pose_index = pose_index
-        row.operator("pt.cancel_progress_preview", text="Cancel", icon='CANCEL').pose_index = pose_index
+        row.operator("pt.adjust_pose_progress", text="Adjust Pose", icon='DRIVER').pose_index = pose_index
