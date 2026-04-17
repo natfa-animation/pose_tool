@@ -1,6 +1,8 @@
 import bpy  # type: ignore[import-not-found]
 import os
 
+from . import core_apply
+
 
 class PTPosePanel(bpy.types.Panel):
     bl_label = "SIM posetool"
@@ -98,6 +100,12 @@ class PTPosePanel(bpy.types.Panel):
         row.operator("pt.delete_pose", text="", icon='TRASH').pose_index = pose_index
         row.operator("pt.duplicate_pose", text="", icon='DUPLICATE').pose_index = pose_index
         row = box.row(align=True)
+        if not core_apply.is_pose_preview_active(pose, context):
+            core_apply._PREVIEW_SUSPEND = True
+            try:
+                pose.preview_progress = pose.combined_progress * 100.0
+            finally:
+                core_apply._PREVIEW_SUSPEND = False
         row.prop(pose, "preview_progress", text="Progress", slider=True)
         row.operator("pt.confirm_progress_preview", text="", icon='CHECKMARK').pose_index = pose_index
         row.operator("pt.cancel_progress_preview", text="", icon='CANCEL').pose_index = pose_index

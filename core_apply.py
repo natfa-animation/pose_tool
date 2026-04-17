@@ -67,13 +67,18 @@ def preview_pose_progress(pose, context, progress_value):
             "pose_ptr": pose_ptr,
             "state": _capture_armature_pose_state(armature),
         }
-    update_pose(pose, context, progress_override=progress_value, insert_keyframes=False, push_undo=False)
+    _restore_armature_pose_state(armature, _PREVIEW_SESSION.get("state", {}))
+    t = max(0.0, min(1.0, float(progress_value) / 100.0))
+    update_pose(pose, context, progress_override=t, insert_keyframes=False, push_undo=False)
 
 
 def cancel_pose_preview(pose, context):
     global _PREVIEW_SESSION
     armature = _resolve_armature_from_context(context)
     if not _PREVIEW_SESSION:
+        return
+    pose_ptr = pose.as_pointer() if hasattr(pose, "as_pointer") else None
+    if _PREVIEW_SESSION.get("pose_ptr") != pose_ptr:
         return
     if not armature or armature.name != _PREVIEW_SESSION.get("armature_name"):
         armature_name = _PREVIEW_SESSION.get("armature_name")
@@ -88,6 +93,16 @@ def cancel_pose_preview(pose, context):
 def clear_pose_preview():
     global _PREVIEW_SESSION
     _PREVIEW_SESSION = None
+
+
+def is_pose_preview_active(pose, context):
+    if not _PREVIEW_SESSION:
+        return False
+    armature = _resolve_armature_from_context(context)
+    if not armature:
+        return False
+    pose_ptr = pose.as_pointer() if hasattr(pose, "as_pointer") else None
+    return _PREVIEW_SESSION.get("key") == (armature.name, pose_ptr)
 
 
 def get_mirror_bone_name(bone_name):

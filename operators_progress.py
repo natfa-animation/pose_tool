@@ -204,8 +204,8 @@ class PT_OT_ConfirmProgressPreview(bpy.types.Operator):
             self.report({'ERROR'}, "Invalid pose index or no armature selected")
             return {'CANCELLED'}
         pose = armature.data.sim_pt_poses[self.pose_index]
-        core_apply.clear_pose_preview()
-        pose.combined_progress = pose.preview_progress
+        core_apply.cancel_pose_preview(pose, context)
+        pose.combined_progress = pose.preview_progress / 100.0
         return {'FINISHED'}
 
 
@@ -227,7 +227,7 @@ class PT_OT_CancelProgressPreview(bpy.types.Operator):
         core_apply.cancel_pose_preview(pose, context)
         core_apply._PREVIEW_SUSPEND = True
         try:
-            pose.preview_progress = pose.combined_progress
+            pose.preview_progress = pose.combined_progress * 100.0
         finally:
             core_apply._PREVIEW_SUSPEND = False
         return {'FINISHED'}
