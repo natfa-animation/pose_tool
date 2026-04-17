@@ -60,14 +60,16 @@ class PTPosePanel(bpy.types.Panel):
         if not armature.data.sim_pt_pose_groups and not armature.data.sim_pt_poses:
             box.label(text="No poses or groups", icon='INFO')
         else:
-            ungrouped_poses = sorted([pose for pose in armature.data.sim_pt_poses if not pose.group_name], key=lambda p: p.name.lower())
+            ungrouped_poses = [(i, pose) for i, pose in enumerate(armature.data.sim_pt_poses) if not pose.group_name]
+            ungrouped_poses.sort(key=lambda ip: ip[1].name.lower())
             if ungrouped_poses:
                 sub_box = box.box()
-                for pose in ungrouped_poses:
-                    self.draw_pose(context, sub_box, pose, armature.data.sim_pt_poses.find(pose.name))
-            self.draw_group_hierarchy(box, armature)
+                for pose_index, pose in ungrouped_poses:
+                    self.draw_pose(context, sub_box, pose, pose_index)
+            self.draw_group_hierarchy(context, box, armature)
 
-    def draw_group_hierarchy(self, layout, armature, group_name="", indent=0):
+    def draw_group_hierarchy(self, context, layout, armature, group_name="", indent=0):
+        all_poses = list(enumerate(armature.data.sim_pt_poses))
         for i, group in enumerate(armature.data.sim_pt_pose_groups):
             if group.parent_group == group_name:
                 box = layout.box()
@@ -79,10 +81,11 @@ class PTPosePanel(bpy.types.Panel):
                 sub_row.scale_x = 0.8
                 sub_row.operator("pt.delete_pose_group", text="", icon='X').group_index = i
                 if group.is_expanded:
-                    group_poses = sorted([pose for pose in armature.data.sim_pt_poses if pose.group_name == group.name], key=lambda p: p.name.lower())
-                    for pose in group_poses:
-                        self.draw_pose(bpy.context, box, pose, armature.data.sim_pt_poses.find(pose.name))
-                    self.draw_group_hierarchy(box, armature, group.name, indent + 1)
+                    group_poses = [(pose_index, pose) for pose_index, pose in all_poses if pose.group_name == group.name]
+                    group_poses.sort(key=lambda ip: ip[1].name.lower())
+                    for pose_index, pose in group_poses:
+                        self.draw_pose(context, box, pose, pose_index)
+                    self.draw_group_hierarchy(context, box, armature, group.name, indent + 1)
 
     def draw_pose(self, context, layout, pose, pose_index):
         box = layout.box()

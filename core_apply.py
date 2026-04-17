@@ -68,7 +68,10 @@ def preview_pose_progress(pose, context, progress_value):
             "state": _capture_armature_pose_state(armature),
         }
     _restore_armature_pose_state(armature, _PREVIEW_SESSION.get("state", {}))
-    t = max(0.0, min(1.0, float(progress_value) / 100.0))
+    try:
+        t = float(progress_value) / 100.0
+    except Exception:
+        return
     update_pose(pose, context, progress_override=t, insert_keyframes=False, push_undo=False)
 
 

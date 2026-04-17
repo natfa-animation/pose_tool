@@ -150,7 +150,7 @@ class PT_OT_SetProgress_Plus1(bpy.types.Operator):
 class PT_OT_TogglePoseMode(bpy.types.Operator):
     bl_idname = "pt.toggle_pose_mode"
     bl_label = "Toggle Pose Mode"
-    bl_description = "Switch between relative and absolute pose mode"
+    bl_description = "Toggle Absolute (A) vs Relative/Additive (+) pose application mode"
     if TYPE_CHECKING:
         pose_index: int
     else:
@@ -241,7 +241,7 @@ class PT_OT_CancelProgressPreview(bpy.types.Operator):
 class PT_OT_AdjustPoseProgress(bpy.types.Operator):
     bl_idname = "pt.adjust_pose_progress"
     bl_label = "Adjust Pose"
-    bl_description = "Interactively adjust pose progress (LMB confirm, RMB/ESC cancel)"
+    bl_description = "Adjust the pose by dragging: LMB confirm, RMB or Esc cancel (supports negative values; Relative/+ can exceed 100%)"
     bl_options = {'REGISTER', 'BLOCKING'}
     if TYPE_CHECKING:
         pose_index: int
@@ -250,7 +250,34 @@ class PT_OT_AdjustPoseProgress(bpy.types.Operator):
 
     _start_mouse_x = 0
     _value = 0.0
+    _pose_ptr = None
     _area = None
+
+    @staticmethod
+    def _find_pose_by_pointer(armature, pose_ptr):
+        if not armature or not getattr(armature, "data", None) or not hasattr(armature.data, "sim_pt_poses"):
+            return None
+        for pose in armature.data.sim_pt_poses:
+            try:
+                if pose.as_pointer() == pose_ptr:
+                    return pose
+            except Exception:
+                continue
+        return None
+
+    def _set_status(self, context, text):
+        if self._area:
+            self._area.header_text_set(text)
+        workspace = getattr(context, "workspace", None)
+        if workspace and hasattr(workspace, "status_text_set"):
+            workspace.status_text_set(text)
+
+    def _clear_status(self, context):
+        if self._area:
+            self._area.header_text_set(None)
+        workspace = getattr(context, "workspace", None)
+        if workspace and hasattr(workspace, "status_text_set"):
+            workspace.status_text_set(None)
 
     def invoke(self, context, event):
         armature = context.scene.sim_pt_selected_armature if context.scene.sim_pt_selected_armature else context.active_object
@@ -262,8 +289,14 @@ class PT_OT_AdjustPoseProgress(bpy.types.Operator):
         self._area = context.area
         pose = armature.data.sim_pt_poses[self.pose_index]
         core_apply.preview_pose_progress(pose, context, 0.0)
+        try:
+            self._pose_ptr = pose.as_pointer()
+        except Exception:
+            self._pose_ptr = None
+        self._set_status(context, "Adjust Pose: drag to set -100..+100 (A) or beyond (+). LMB confirm, RMB/Esc cancel.")
         if self._area:
             self._area.header_text_set("Adjust Pose: drag mouse to set 0–100, LMB confirm, RMB/ESC cancel")
+        self._set_status(context, "Adjust Pose: drag to set -100..+100 (A) or beyond (+). LMB confirm, RMB/Esc cancel.")
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
@@ -276,32 +309,45 @@ class PT_OT_AdjustPoseProgress(bpy.types.Operator):
             return {'FINISHED'}
         if event.type == 'MOUSEMOVE':
             armature = context.scene.sim_pt_selected_armature if context.scene.sim_pt_selected_armature else context.active_object
-            if not armature or armature.type != 'ARMATURE' or self.pose_index >= len(armature.data.sim_pt_poses):
+            if not armature or armature.type != 'ARMATURE':
                 self._cancel(context)
                 return {'CANCELLED'}
-            pose = armature.data.sim_pt_poses[self.pose_index]
+            pose = self._find_pose_by_pointer(armature, self._pose_ptr) if self._pose_ptr else None
+            if not pose:
+                self._cancel(context)
+                return {'CANCELLED'}
             dx = event.mouse_x - self._start_mouse_x
-            self._value = max(0.0, min(100.0, dx * 0.5))
+            sensitivity = 1.0
+            if event.shift:
+                sensitivity = 0.2
+            if event.ctrl:
+                sensitivity = 5.0
+            value = dx * 0.5 * sensitivity
+            if not pose.is_relative:
+                value = max(-100.0, min(100.0, value))
+            self._value = value
             core_apply.preview_pose_progress(pose, context, self._value)
-            if self._area:
-                self._area.header_text_set(f"Adjust Pose: {self._value:.1f}% (LMB confirm, RMB/ESC cancel)")
+            self._set_status(context, f"Adjust Pose: {self._value:.1f}% (LMB confirm, RMB/Esc cancel)")
             return {'RUNNING_MODAL'}
         return {'RUNNING_MODAL'}
 
     def _confirm(self, context):
         armature = context.scene.sim_pt_selected_armature if context.scene.sim_pt_selected_armature else context.active_object
-        if not armature or armature.type != 'ARMATURE' or self.pose_index >= len(armature.data.sim_pt_poses):
+        if not armature or armature.type != 'ARMATURE':
+            self._clear_status(context)
             return
-        pose = armature.data.sim_pt_poses[self.pose_index]
+        pose = self._find_pose_by_pointer(armature, self._pose_ptr) if self._pose_ptr else None
+        if not pose:
+            self._clear_status(context)
+            return
         core_apply.cancel_pose_preview(pose, context)
-        pose.combined_progress = self._value / 100.0
-        if self._area:
-            self._area.header_text_set(None)
+        core_apply.update_pose(pose, context, progress_override=self._value / 100.0, insert_keyframes=True, push_undo=True)
+        self._clear_status(context)
 
     def _cancel(self, context):
         armature = context.scene.sim_pt_selected_armature if context.scene.sim_pt_selected_armature else context.active_object
-        if armature and armature.type == 'ARMATURE' and self.pose_index < len(armature.data.sim_pt_poses):
-            pose = armature.data.sim_pt_poses[self.pose_index]
-            core_apply.cancel_pose_preview(pose, context)
-        if self._area:
-            self._area.header_text_set(None)
+        if armature and armature.type == 'ARMATURE':
+            pose = self._find_pose_by_pointer(armature, self._pose_ptr) if self._pose_ptr else None
+            if pose:
+                core_apply.cancel_pose_preview(pose, context)
+        self._clear_status(context)

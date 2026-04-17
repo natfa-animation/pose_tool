@@ -1,169 +1,135 @@
-<img width="673" height="537" alt="Screenshot 2026-04-16 231652" src="https://github.com/user-attachments/assets/994c7ab4-31c9-4522-beb0-e72d1d74d259" />
 # SIM posetool (Blender Add-on)
 
-## Description
+SIM posetool is a Blender add-on for recording, organizing, and applying armature poses (including groups and JSON presets). It includes an interactive **Adjust Pose** drag tool for previewing and committing pose influence with Blender-style confirm/cancel behavior.
 
-**SIM posetool** is a Blender add-on for managing armature pose presets: recording poses from selected bones, organizing them into groups, and applying them with an adjustable progress value for interpolation.
-
-It appears in:
-
-- **3D Viewport → Sidebar (N) → “SIM anima” tab → “SIM posetool” panel**
+Where it appears:
+- `View3D -> Sidebar (N) -> SIM anima -> SIM posetool`
 
 ## Features
 
 ### Pose management
-
-- **Record Pose**: create a new pose from the currently selected pose bones.
-- **Update Pose**: refresh an existing pose’s stored bone transforms from the currently selected pose bones (and rebuild which bones participate).
-- **Duplicate Pose**: duplicate a pose (creates a `*_Copy`).
-- **Delete Pose**: delete a single pose.
-- **Delete All Poses**: clear all poses on the selected armature.
+- Record a pose from selected pose bones
+- Update an existing pose from current bone transforms
+- Select the bones stored in a pose
+- Duplicate a pose
+- Delete a pose / delete all poses
 
 ### Pose grouping
+- Create nested pose groups
+- Assign poses to groups
+- Expand/collapse groups in the UI
+- Delete groups (poses are ungrouped safely)
 
-- **Create Pose Group**: create a group (optionally nested under a parent group).
-- **Group hierarchy UI**: expand/collapse groups and view nested groups.
-- **Delete Pose Group**: removes the group and clears group links from poses and child groups.
+### Apply / adjust a pose (interactive)
+- Per pose, use **Adjust Pose** to enter a modal drag tool:
+  - Drag to preview pose influence live (non-cumulative / deterministic)
+  - `Left Mouse` confirms (commits)
+  - `Right Mouse` or `Esc` cancels (reverts)
+- Supports **negative values** (drag left) for inverse influence where applicable.
+- Supports **Relative/Additive mode** (`+`) which can exceed the normal full-pose limit (> 100%).
 
-### Progress system (`combined_progress`)
-
-- Each pose has a **progress value** (`combined_progress`, range `-1.0 .. 1.0`) used when applying the pose.
-- Quick buttons in the UI: **-1**, **-0.25**, **-0.1**, **+0.1**, **+0.25**, **+1**, plus **Reset**.
-
-### Mirror functionality
-
-- Per-pose **Mirror toggle**.
-- Mirror name resolution supports common suffixes like:
+### Mirror
+- Per-pose mirror toggle
+- Mirror name detection supports common conventions:
   - `_Left` / `_Right`
   - `.L` / `.R`
 
 ### Import / Export / Merge (JSON)
+- Export poses + groups to JSON
+- Import poses + groups from JSON (replaces existing)
+- Merge poses + groups from JSON (adds missing items)
 
-- **Export** poses + groups to a `.json` file.
-- **Import** poses + groups from a `.json` file (replaces existing).
-- **Merge** poses + groups from a `.json` file (adds to existing).
-
-### Presets system (folder-based)
-
-- Choose a **Presets Folder**.
-- Dropdown lists `.json` files in that folder.
-- **Load Preset** loads the selected preset file (replaces current poses/groups on the armature).
-
-### Armature selection behavior
-
-- Uses **Scene → Selected Armature** when set.
-- Otherwise falls back to the **active object** (must be an Armature).
+### Presets (folder-based)
+- Choose a presets folder
+- Pick a preset from a dropdown (lists `.json` files)
+- Load preset into the current armature (replaces current poses/groups)
 
 ### Toggles
-
-- **Rotation / Location / Scale** toggles for pose application behavior.
-- **Apply to All Bones** toggle (otherwise uses selected bones).
+- Rotation / Location / Scale toggles for application
+- Apply to All Bones toggle (otherwise uses selected bones)
 
 ## Installation
 
-### 2) Install in Blender
+### Install from ZIP
+1. Zip the **add-on folder** (not individual files).
+2. In Blender: `Edit -> Preferences -> Add-ons -> Install...`
+3. Select the ZIP and enable the add-on.
 
-1. **Edit → Preferences → Add-ons**
-2. Click **Install…**
-3. Select your `my_addon.zip`
-4. Enable the add-on (checkbox)
+Correct ZIP structure:
 
-### What to zip / what NOT to zip
-
-- Zip: the **folder that contains `__init__.py`**
-- Do NOT zip: the files directly at the ZIP root (Blender expects a top-level folder)
+```text
+sim_posetool.zip
+└── pose_tool/
+    ├── __init__.py
+    ├── constants.py
+    ├── core_apply.py
+    ├── props_types.py
+    ├── scene_props.py
+    ├── operators_pose.py
+    ├── operators_io.py
+    ├── operators_progress.py
+    ├── ui_panel.py
+    └── LICENSE
+```
 
 ## Usage
 
-### Select an armature
+### 1) Select an armature
+- In the panel, set **Armature** (or ensure the active object is an Armature).
 
-1. Open **3D Viewport → Sidebar (N) → SIM anima → SIM posetool**
-2. Set **Armature** (or make your armature the active object)
+### 2) Record a pose
+1. Put the armature in Pose Mode.
+2. Select the bones you want to store.
+3. Click **Add** (Record Pose) and name it.
 
-### Create a pose
+### 3) Adjust/apply a pose (modal drag tool)
+1. In the pose row, click **Adjust Pose**.
+2. Drag the mouse:
+   - Drag right = positive influence
+   - Drag left = negative influence
+3. Confirm/cancel:
+   - `Left Mouse` confirm (commits the current preview)
+   - `Right Mouse` / `Esc` cancel (restores the exact pose state from before the drag started)
 
-1. Select bones in **Pose Mode**
-2. Click **Add** (Record Pose)
-3. Enter a name and confirm
+Tips:
+- In **Absolute (A)** mode, the tool is clamped to `-100% .. +100%`.
+- In **Relative/Additive (+)** mode, the tool can exceed `100%` to intensify the pose.
+- Hold `Shift` for finer control, `Ctrl` for faster control.
 
-### Apply a pose (via progress)
+### 4) Absolute vs Relative/Additive
+- **A (Absolute)**: blends toward the stored target pose (and supports negative for inverse-style behavior).
+- **+ (Relative/Additive)**: applies the pose as a delta on top of the current rig state; values can go beyond 100%.
 
-- Use the per-pose progress buttons (**-1 … +1**) to set the pose progress value.
-- Use **Reset** to return the progress value to its default.
+### 5) Groups
+- Click **Create Group** to add a group.
+- Use the group field next to a pose name to assign it to a group.
 
-### Update an existing pose
+### 6) Import / Export / Merge
+- Expand **Settings** and use Export/Import/Merge for JSON workflows.
 
-1. Select the bones that should be part of the pose
-2. Click **Update** on that pose
+### 7) Presets
+- Expand **Presets**, set the folder, pick a preset, and click **Load Preset**.
 
-### Organize poses into groups
+## Troubleshooting
 
-1. Click **Create Group**
-2. (Optional) pick a parent group to nest it
-3. Assign poses to groups using the group field next to each pose name
+### Add-on installs but panel doesn’t show
+- Verify the ZIP contains a single top-level folder with `__init__.py` inside it.
+- Enable the add-on and check Blender’s system console for import errors.
 
-### Import / export / merge
-
-- Expand **Settings**
-- Use:
-  - **Export** to save poses/groups to JSON
-  - **Import** to replace current poses/groups from JSON
-  - **Merge** to add poses/groups from JSON into the current set
-
-### Use presets (folder dropdown)
-
-1. Expand **Presets**
-2. Set **Presets Folder**
-3. Choose a preset from the dropdown
-4. Click **Load Preset**
-
-## UI Overview
-
-The **SIM posetool** panel includes:
-
-- **Armature selector**
-- **Top actions**
-  - Record Pose (Add)
-  - Delete All Poses
-  - Create Pose Group
-- **Settings (expandable)**
-  - Rotation / Location / Scale toggles
-  - Apply to All Bones toggle
-  - Export / Import / Merge buttons
-- **Presets (expandable)**
-  - Presets Folder path
-  - Preset dropdown (lists `.json` files)
-  - Load Preset button
-- **Pose list**
-  - Ungrouped poses
-  - Group hierarchy (nested groups)
-  - Per-pose controls: select bones, update, relative/absolute toggle, mirror toggle, delete, duplicate, progress buttons
+### “Adjust Pose” cancels immediately
+- Ensure an Armature is selected (panel armature selector or active object).
+- Ensure the armature can switch to Pose Mode (some contexts can block mode switching).
 
 ## Compatibility
+- Blender: **5+**
+- Many operations are context-sensitive (Pose Mode, active object, selection).
 
-- Blender version: **Blender 5+** (tested in Blender 5).
-- Many actions are **context-sensitive** (armature selection, Pose Mode availability). The add-on may switch modes internally when needed.
-
-## Known Issues / Notes
-
-- Most operators require a valid **Armature** (Selected Armature or active object).
-- Some actions depend on Blender context (mode switching, selection state); if Blender cannot switch to **Pose Mode**, an operation may cancel.
-- Applying poses is **keyframe-driven** (pose application inserts keyframes on the current frame for enabled channels).
-
-## Developer Notes (optional)
-
-Module layout:
-
-- `__init__.py`: `bl_info`, registration, preferences, class list
-- `constants.py`: shared constants (default presets path)
-- `props_types.py`: PropertyGroup types (pose item / bone data / groups)
-- `core_apply.py`: pose application logic (`update_pose`) + mirror name helper
-- `scene_props.py`: Scene properties (toggles, armature pointer, presets)
-- `operators_*.py`: operators grouped by purpose
-- `ui_panel.py`: View3D sidebar panel
-
-`update_pose()` is the core behavior: it evaluates pose data, respects toggles, and applies transforms/keyframes based on the pose’s current progress value.
+## Developer notes
+- The modal adjust tool is implemented as `pt.adjust_pose_progress`:
+  - caches a base state once per session
+  - recomputes preview from that base on every mouse move (non-cumulative)
+  - confirms with LMB and cancels with RMB/Esc
 
 ## License
-
 See `LICENSE`.
+
